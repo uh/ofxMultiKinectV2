@@ -7,6 +7,20 @@ class ofApp : public ofBaseApp{
     
     ofEasyCam ecam;
     ofVboMesh mesh;
+    
+    
+    float irXres = 512;
+    float irYres = 424;
+    float colorXres = 1920;
+    float colorYres = 1080;
+    
+    float irXdeg = 70.6;
+    float irYdeg = 60;
+    float colorXdeg = 84.1;
+    float colorYdeg = 53.8;
+    
+    
+    
 public:
     
     void setup()
@@ -14,7 +28,7 @@ public:
         ofSetVerticalSync(true);
         ofSetFrameRate(60);
         
-        kinect0.open(false, true, 0);
+        kinect0.open(true, true, 0, 0);
         // Note :
         // Default OpenCL device might not be optimal.
         // e.g. Intel HD Graphics will be chosen instead of GeForce.
@@ -33,29 +47,47 @@ public:
     
     void update() {
         kinect0.update();
+        
         if (kinect0.isFrameNew()) {
+            
             mesh.clear();
             {
                 int step = 2;
                 int h = kinect0.getDepthPixelsRef().getHeight();
                 int w = kinect0.getDepthPixelsRef().getWidth();
-                for(int y = 0; y < h; y += step) {
-                    for(int x = 0; x < w; x += step) {
+                
+                int startH = irXres * ((irXdeg - colorXdeg) / 2)/irXdeg;
+                int endH = irXres - startH;
+                
+                int startW = 0;
+                int endW = kinect0.getDepthPixelsRef().getWidth();;
+                
+                int startColorW = colorXres * (((colorXdeg - irXdeg)/2)/colorXdeg);
+                int endColorW = colorXres - startColorW;
+                
+               
+                for(int y = startH; y < endH; y += step) {
+                    for(int x = startW; x < endW; x += step) {
+                        
                         float dist = kinect0.getDistanceAt(x, y);
-                        if(dist > 50 && dist < 500) {
+                        if(dist > 1 && dist < 5000) {
                             ofVec3f pt = kinect0.getWorldCoordinateAt(x, y, dist);
                             
-                            ofColor c;
-                            float h = ofMap(dist, 50, 200, 0, 255, true);
-                            c.setHsb(h, 255, 255);
+                            ofColor c = kinect0.getColorAt(startColorW + (x / irXres) * (endColorW - startColorW),
+                                                           (y / irYres) * colorYres);
+                            
                             mesh.addColor(c);
                             mesh.addVertex(pt);
                         }
+                        
                     }
                 }
 
             }
         }
+        
+        
+        
     }
     
     void draw()
@@ -64,8 +96,9 @@ public:
         
         if (mesh.getVertices().size()) {
             ofPushStyle();
-            glPointSize(2);
+            glPointSize(4);
             ecam.begin();
+            ofScale(1, 1, -1);
             ofDrawAxis(100);
             ofPushMatrix();
             ofTranslate(0, 0, -100);
@@ -78,6 +111,55 @@ public:
         ofDrawBitmapStringHighlight(ofToString(ofGetFrameRate()), 10, 20);
         ofDrawBitmapStringHighlight("Device Count : " + ofToString(ofxMultiKinectV2::getDeviceCount()), 10, 40);
     }
+
+
+    void keyPressed(int key)
+    {
+        if (key == 'a') {
+            irXdeg += 1;
+        }
+        
+        if (key == 'z') {
+            irXdeg -= 1;
+        }
+        
+        if (key == 's') {
+            irYdeg += 1;
+        }
+        
+        if (key == 'x') {
+            irYdeg += 1;
+        }
+        
+        if (key == 'd') {
+            colorXdeg += 1;
+        }
+        
+        if (key == 'c') {
+            colorXdeg -= 1;
+        }
+        
+        if (key == 'f') {
+            colorYdeg += 1;
+        }
+        
+        if (key == 'v') {
+            colorYdeg += 1;
+        }
+        
+        
+        
+        
+        ofLogNotice() << irXdeg << "\t" << irYdeg << "\t" << colorXdeg << "\t" << colorYdeg;
+        
+    }
+
+
+
+
+
+
+
 };
 
 //#include "ofAppGLFWWindow.h"
